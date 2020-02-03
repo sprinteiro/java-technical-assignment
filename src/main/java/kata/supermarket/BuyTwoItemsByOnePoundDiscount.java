@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class BuyTwoItemsByOnePoundDiscount implements Discount {
-    private static final BigDecimal ZERO_DISCOUNT = new BigDecimal("0.0");
+    private static final BigDecimal ZERO_DISCOUNT = BigDecimal.valueOf(0, 2);
 
     @Override
     public Map<Item, BigDecimal> calculate(List<Item> items) {
@@ -24,13 +24,12 @@ public class BuyTwoItemsByOnePoundDiscount implements Discount {
                 itemList.get(0).price().add(itemList.get(1).price()).compareTo(BigDecimal.ONE) > 0;
 
             if (isTwoItems && isPriceGreaterThanOnePound) {
-                // Apply discount, two items by one pound so that the discount is
-                // (item's price - 1) / 2
-                BigDecimal priceWithDiscount =
-                    itemList.get(0).price()
-                        .subtract(new BigDecimal("1").divide(new BigDecimal("2"), RoundingMode.HALF_UP));
-                itemDiscountPriceMap.put(itemList.get(0), priceWithDiscount);
-                itemDiscountPriceMap.put(itemList.get(1), priceWithDiscount);
+                BigDecimal priceBothItems = itemList.get(0).price().add(itemList.get(1).price());
+                BigDecimal priceToDiscount = priceBothItems.subtract(BigDecimal.valueOf(1));
+                BigDecimal priceWithDiscountPerEachItem = priceToDiscount.divide(new BigDecimal("2"), RoundingMode.HALF_UP);
+
+                itemDiscountPriceMap.put(itemList.get(0), priceWithDiscountPerEachItem);
+                itemDiscountPriceMap.put(itemList.get(1), priceWithDiscountPerEachItem);
             }
         });
 

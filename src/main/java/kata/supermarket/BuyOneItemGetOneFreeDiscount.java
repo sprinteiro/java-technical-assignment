@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class BuyOneItemGetOneFreeDiscount implements Discount {
-    private static final BigDecimal ZERO_DISCOUNT = new BigDecimal("0.0");
+    private static final BigDecimal ZERO_DISCOUNT = BigDecimal.valueOf(0, 2);
 
     @Override
     public Map<Item, BigDecimal> calculate(List<Item> items) {

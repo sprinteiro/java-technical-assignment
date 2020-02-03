@@ -5,12 +5,19 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Basket {
-    private final List<Item> items;
+    private final List<Item> items = new ArrayList<>();
+    private final PricingDiscount pricingDiscount;
 
     public Basket() {
-        this.items = new ArrayList<>();
+        pricingDiscount = PricingDiscount.of(new NoDiscount());
+    }
+
+    public Basket(PricingDiscount pricingDiscount) {
+        this.pricingDiscount = pricingDiscount;
     }
 
     public void add(final Item item) {
@@ -47,7 +54,16 @@ public class Basket {
          *  which provides that functionality.
          */
         private BigDecimal discounts() {
-            return BigDecimal.ZERO;
+            Map<Item, BigDecimal> itemDiscountsMap = pricingDiscount.calculate(items());
+
+            AtomicReference<BigDecimal> totalDiscount = new AtomicReference<>();
+            totalDiscount.set(BigDecimal.valueOf(0, 2));
+
+            itemDiscountsMap.forEach((item, bigDecimal) ->
+                totalDiscount.getAndSet(totalDiscount.get().add(bigDecimal))
+            );
+
+            return totalDiscount.get();
         }
 
         private BigDecimal calculate() {

@@ -7,7 +7,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class NoDiscount implements Discount {
-    public static final BigDecimal ZERO_DISCOUNT = new BigDecimal("0.0");
+    public static final BigDecimal ZERO_DISCOUNT = BigDecimal.valueOf(0, 2);
 
     @Override
     public Map<Item, BigDecimal> calculate(List<Item> items) {

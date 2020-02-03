@@ -1,7 +1,6 @@
 package kata.supermarket;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -16,9 +15,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class PricingDiscountTest {
+
+    private static final BigDecimal ZERO = BigDecimal.valueOf(0, 2);
 
     @DisplayName("Add pricing discount schema")
     @MethodSource("pricingDiscountsFactory")
@@ -31,7 +33,7 @@ public class PricingDiscountTest {
         assertEquals(discounts.size(), pricingDiscount.total());
     }
 
-    @DisplayName("Half price of discount per kilo")
+    @DisplayName("Per weight - Apply discount to item weight, half price of discount per kilo")
     @MethodSource("vegetablesItemsFactory")
     @ParameterizedTest(name = "WeightInKilos: {0} PricePerKilo: {1} ItemName: {2} ExpedtedPrice: {3}")
     void applyDiscountEachKiloOfVegatablesForHalfPrice(String weightInKilos, String pricePerKilo, String itemName, String expectedPrice) {
@@ -47,54 +49,50 @@ public class PricingDiscountTest {
         assertEquals(new BigDecimal(expectedPrice), discounts.get(items.get(0)));
     }
 
-    @Test
-    void buyOneWithoutDiscount() {
-        final PricingDiscount pricingDiscount = PricingDiscount.of(new NoDiscount());
-        final List<Item> items = Arrays.asList(aPintOfMilk());
-        final BigDecimal expectedDiscountPrice = new BigDecimal("0.0");
+    @DisplayName("Per unit - Apply discount to items units")
+    @MethodSource("perUnitItemsFactory")
+    @ParameterizedTest(name = "{0} - ExpedtedPrice: {3}")
+    void applyDiscountPerUnitsOfItems(final String description, final Discount discount, final List<Item> items, final List<BigDecimal> expectedPrice) {
+        final PricingDiscount pricingDiscount = PricingDiscount.of(discount);
 
         Map<Item, BigDecimal> discounts = pricingDiscount.calculate(items);
 
-        assertEquals(1, discounts.size());
-        assertEquals(expectedDiscountPrice, discounts.get(items.get(0)));
+        assertTrue(items.size() == discounts.size());
+
+        for (int i=0; i<items.size(); i++) {
+            assertEquals(expectedPrice.get(i), discounts.get(items.get(i)));
+        }
+
     }
-
-    @Test
-    void applyDiscountBuyOneGetOneFree() {
-        final PricingDiscount pricingDiscount = PricingDiscount.of(new BuyOneItemGetOneFreeDiscount());
-        final List<Item> items = Arrays.asList(aPintOfMilk(),aPintOfMilk());
-        final BigDecimal noDiscount = new BigDecimal("0.0");
-
-        Map<Item, BigDecimal> discounts = pricingDiscount.calculate(items);
-
-        assertEquals(2, discounts.size());
-        assertEquals(noDiscount, discounts.get(items.get(0)));
-        assertEquals(items.get(1).price(), discounts.get(items.get(1)));
+    private static Arguments lineOf(final String description, final Discount discount, final List<Item> items, final List<BigDecimal> prices) {
+        return Arguments.of(
+            description,
+            discount,
+            items,
+            prices);
     }
-
-    @Test
-    void applyDiscountBuyThreeItemsForThePriceOfTwo() {
-        final PricingDiscount pricingDiscount = PricingDiscount.of(new BuyThreeItemsForThePriceOfTwoDiscount());
-        final List<Item> items = Arrays.asList(aPintOfMilk(),aPintOfMilk(), aPintOfMilk());
-        final BigDecimal expectedPpriceWithDiscount = aPintOfMilk().price().multiply(new BigDecimal(2)).divide(new BigDecimal(3), RoundingMode.HALF_UP);
-
-        Map<Item, BigDecimal> discounts = pricingDiscount.calculate(items);
-
-        assertEquals(3, discounts.size());
-        items.forEach(item -> assertEquals(expectedPpriceWithDiscount, discounts.get(item)));
-    }
-    @Test
-    void applyDiscountBuyTwoItemsByOnePound() {
-        final PricingDiscount pricingDiscount = PricingDiscount.of(new BuyTwoItemsByOnePoundDiscount());
-        final List<Item> items = Arrays.asList(aPintOfMilk(),aPintOfMilk());
-
-        Map<Item, BigDecimal> discounts = pricingDiscount.calculate(items);
-
-        assertEquals(2, discounts.size());
-        assertEquals(items.get(0).price().subtract(new BigDecimal("1").divide(new BigDecimal("2"), RoundingMode.HALF_UP)),
-            discounts.get(items.get(0)));
-        assertEquals(items.get(0).price().subtract(new BigDecimal("1").divide(new BigDecimal("2"), RoundingMode.HALF_UP)),
-            discounts.get(items.get(1)));
+    static Stream<Arguments> perUnitItemsFactory() {
+        final Item pintOfMilk = aPintOfMilk();
+        final BigDecimal expectedPriceWithDiscountOfThreeForThePriceOfTwoDiscount = aPintOfMilk().price().multiply(new BigDecimal(2)).divide(new BigDecimal(3), RoundingMode.HALF_UP);
+        final BigDecimal expectedPriceWithDiscountOfTwoForOnePound = new BigDecimal("0.01");
+        return Stream.of(
+           lineOf("No discount",
+                new NoDiscount(),
+                Arrays.asList(pintOfMilk),
+                Arrays.asList(ZERO)),
+            lineOf("Buy one, get one free",
+                new BuyOneItemGetOneFreeDiscount(),
+                Arrays.asList(aPintOfMilk(), aPintOfMilk()),
+                Arrays.asList(ZERO, pintOfMilk.price())),
+            lineOf("Buy three for the price of two",
+                new BuyThreeItemsForThePriceOfTwoDiscount(),
+                Arrays.asList(aPintOfMilk(),aPintOfMilk(), aPintOfMilk()),
+                Arrays.asList(expectedPriceWithDiscountOfThreeForThePriceOfTwoDiscount, expectedPriceWithDiscountOfThreeForThePriceOfTwoDiscount, expectedPriceWithDiscountOfThreeForThePriceOfTwoDiscount)),
+            lineOf("Buy two items by one pound",
+                new BuyTwoItemsByOnePoundDiscount(),
+                Arrays.asList(aPintOfMilk(),aPintOfMilk()),
+                Arrays.asList(expectedPriceWithDiscountOfTwoForOnePound, expectedPriceWithDiscountOfTwoForOnePound))
+            );
     }
 
     static Stream<Arguments> pricingDiscountsFactory() {

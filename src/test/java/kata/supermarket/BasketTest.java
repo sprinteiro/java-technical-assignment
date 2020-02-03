@@ -14,10 +14,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BasketTest {
 
-    public static final String PICK_AND_MIX_NAME = "Pick and Mix";
+    private static final String PICK_AND_MIX_NAME = "Pick and Mix";
+    private static final String PRICE_0_49 = "0.49";
+    private static final String PRICE_0_51 = "0.51";
 
-    @DisplayName("basket provides its total value when containing...")
-    @MethodSource
+    @DisplayName("No Discounts - Basket provides its total value when containing...")
+    @MethodSource("basketProvidesTotalValue")
     @ParameterizedTest(name = "{0}")
     void basketProvidesTotalValue(String description, String expectedTotal, Iterable<Item> items) {
         final Basket basket = new Basket();
@@ -25,41 +27,81 @@ class BasketTest {
         assertEquals(new BigDecimal(expectedTotal), basket.total());
     }
 
-    static Stream<Arguments> basketProvidesTotalValue() {
+    @DisplayName("Discounts - Basket provides its total value when containing...")
+    @MethodSource("basketProvidesTotalValueWithDiscounts")
+    @ParameterizedTest(name = "{0}")
+    void basketProvidesTotalValueWithDiscounts(String description, String expectedTotal, Iterable<Item> items, Discount discount) {
+        // TODO: DEBUG
+        final Basket basket = new Basket(PricingDiscount.of(discount));
+        items.forEach(basket::add);
+        BigDecimal total = basket.total();
+        assertEquals(new BigDecimal(expectedTotal), basket.total());
+    }
+
+    static Stream<Arguments> basketProvidesTotalValueWithDiscounts() {
+        Discount buyOneGetOneFreeDiscount = new BuyOneItemGetOneFreeDiscount();
+        Discount buyTwoItemsByOnePoundDiscount = new BuyTwoItemsByOnePoundDiscount();
         return Stream.of(
-                noItems(),
-                aSingleItemPricedPerUnit(),
-                multipleItemsPricedPerUnit(),
-                aSingleItemPricedByWeight(),
-                multipleItemsPricedByWeight()
+            noItemsWithDiscount("No items - Buy One Get One Free", buyOneGetOneFreeDiscount),
+            aSingleItemPricedPerUnitWithDiscount("A single item priced per unit - Buy One Get One Free", "0.49", buyOneGetOneFreeDiscount),
+            multipleSameItemsPricedPerUnitWithDiscount("Multiple same items priced per unit - Buy One Get One Free",PRICE_0_51, buyOneGetOneFreeDiscount),
+
+            noItemsWithDiscount("No items - Buy Two by One Pound", buyTwoItemsByOnePoundDiscount),
+            aSingleItemPricedPerUnitWithDiscount("A single item priced per unit - Buy Two by One Pound", "0.49", buyTwoItemsByOnePoundDiscount),
+            multipleSameItemsPricedPerUnitWithDiscount("Multiple same items priced per unit -  Buy Two by One Pound","1.00", buyTwoItemsByOnePoundDiscount)
+
         );
     }
 
-    private static Arguments aSingleItemPricedByWeight() {
-        return Arguments.of("a single weighed item", "1.25", Collections.singleton(twoFiftyGramsOfAmericanSweets()));
+    static Stream<Arguments> basketProvidesTotalValue() {
+        return Stream.of(
+                noItems(),
+                aSingleItemPricedPerUnit("0.49"),
+                multipleItemsPricedPerUnit("2.04"),
+                aSingleItemPricedByWeight("1.25"),
+                multipleItemsPricedByWeight("1.85")
+        );
     }
 
-    private static Arguments multipleItemsPricedByWeight() {
-        return Arguments.of("multiple weighed items", "1.85",
+    private static Arguments aSingleItemPricedByWeight(String totalPrice) {
+        return Arguments.of("a single weighed item", totalPrice, Collections.singleton(twoFiftyGramsOfAmericanSweets()));
+    }
+
+    private static Arguments multipleItemsPricedByWeight(String totalPrice) {
+        return Arguments.of("multiple weighed items", totalPrice,
                 Arrays.asList(twoFiftyGramsOfAmericanSweets(), twoHundredGramsOfPickAndMix())
         );
     }
 
-    private static Arguments multipleItemsPricedPerUnit() {
-        return Arguments.of("multiple items priced per unit", "2.04",
-                Arrays.asList(aPackOfDigestives(), aPintOfMilk()));
+    private static Arguments multipleItemsPricedPerUnit(String totalPrice) {
+        return Arguments.of("multiple items priced per unit", totalPrice,
+                Arrays.asList(aPackOfDigestives(), aPintOfMilk(PRICE_0_49)));
     }
 
-    private static Arguments aSingleItemPricedPerUnit() {
-        return Arguments.of("a single item priced per unit", "0.49", Collections.singleton(aPintOfMilk()));
+    private static Arguments multipleSameItemsPricedPerUnitWithDiscount(String description, String totalPrice, Discount discount) {
+        return Arguments.of(description, totalPrice,
+            Arrays.asList(aPintOfMilk(PRICE_0_51), aPintOfMilk(PRICE_0_51)), discount);
+    }
+
+
+    private static Arguments aSingleItemPricedPerUnit(String totalPrice) {
+        return Arguments.of("a single item priced per unit", totalPrice, Collections.singleton(aPintOfMilk(PRICE_0_49)));
+    }
+
+    private static Arguments aSingleItemPricedPerUnitWithDiscount(String description, String totalPrice, Discount discount) {
+        return Arguments.of(description, totalPrice, Collections.singleton(aPintOfMilk(PRICE_0_49)), discount);
     }
 
     private static Arguments noItems() {
         return Arguments.of("no items", "0.00", Collections.emptyList());
     }
 
-    private static Item aPintOfMilk() {
-        return new Product(new BigDecimal("0.49")).oneOf(new ItemName("Pint of Milk"));
+    private static Arguments noItemsWithDiscount(String description, Discount discount) {
+        return Arguments.of(description, "0.00", Collections.emptyList(), discount);
+    }
+
+    private static Item aPintOfMilk(String price) {
+        return new Product(new BigDecimal(price)).oneOf(new ItemName("Pint of Milk"));
     }
 
     private static Item aPackOfDigestives() {
