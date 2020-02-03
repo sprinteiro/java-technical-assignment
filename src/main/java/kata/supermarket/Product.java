@@ -14,7 +14,7 @@ public class Product {
         return pricePerUnit;
     }
 
-    public Item oneOf() {
-        return new ItemByUnit(this);
+    public Item oneOf(final ItemName itemName) {
+        return new ItemByUnit(this, itemName);
     }
 }
