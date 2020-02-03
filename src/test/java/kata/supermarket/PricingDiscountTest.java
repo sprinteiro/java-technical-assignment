@@ -8,7 +8,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class PricingDiscountTest {
 
     @DisplayName("Add pricing discount schema")
-    @MethodSource
+    @MethodSource("pricingDiscountsFactory")
     @ParameterizedTest(name = "{0}")
     void pricingDiscounts(String description, Discount expectedDiscount, List<Discount> discounts) {
         final PricingDiscount pricingDiscount = PricingDiscount.empty();
@@ -25,6 +29,22 @@ public class PricingDiscountTest {
         discounts.forEach(pricingDiscount::add);
 
         assertEquals(discounts.size(), pricingDiscount.total());
+    }
+
+    @DisplayName("Half price of discount per kilo")
+    @MethodSource("vegetablesItemsFactory")
+    @ParameterizedTest(name = "WeightInKilos: {0} PricePerKilo: {1} ItemName: {2} ExpedtedPrice: {3}")
+    void applyDiscountEachKiloOfVegatablesForHalfPrice(String weightInKilos, String pricePerKilo, String itemName, String expectedPrice) {
+        final List<Item> items = Arrays.asList(itemByWeight(weightInKilos, pricePerKilo, itemName));
+        final PricingDiscount pricingDiscount =
+            PricingDiscount.of(new BuyOneKiloOfVegetablesForHalfPriceDiscount(
+                items.stream().map(Item::itemName).collect(Collectors.toList())
+            ));
+
+        Map<Item, BigDecimal> discounts = pricingDiscount.calculate(items);
+
+        assertEquals(1, discounts.size());
+        assertEquals(new BigDecimal(expectedPrice), discounts.get(items.get(0)));
     }
 
     @Test
@@ -77,17 +97,42 @@ public class PricingDiscountTest {
             discounts.get(items.get(1)));
     }
 
-    private static Item aPintOfMilk() {
-        return new Product(new BigDecimal("0.51")).oneOf(new ItemName("Pint of Milk"));
-    }
-
-    static Stream<Arguments> pricingDiscounts() {
+    static Stream<Arguments> pricingDiscountsFactory() {
         return Stream.of(
             noDiscount(),
             buyOneItemGetOneFreeDiscount()
         );
     }
 
+    static Stream<Arguments> vegetablesItemsFactory() {
+        return Stream.of(
+            Arguments.of("3.50", "4.99", "Courgettes", "10.00"),
+            Arguments.of("2.75", "3.25", "Celery", "5.70"),
+            Arguments.of("1.00", "4.99", "Onions", "2.50"));
+    }
+
+    private static Item aPintOfMilk() {
+        return new Product(new BigDecimal("0.51")).oneOf(new ItemName("Pint of Milk"));
+    }
+
+    private static Item oneKiloGramsOfOnions() {
+        return aKiloOfVegetables().weighing(new BigDecimal("1.00"), new ItemName("Onios"));
+    }
+
+    private static Item threeAndHalfKiloGramsOfCourgettes() {
+        return aKiloOfVegetables().weighing(new BigDecimal("3.50"), new ItemName("Courgettes"));
+    }
+
+    private static WeighedProduct aKiloOfVegetables() {
+
+        return new WeighedProduct(new BigDecimal("4.99"));
+    }
+
+    private static Item itemByWeight(final String weightInKilos, final String pricePerKilo, final String itemName) {
+        return
+            new WeighedProduct(new BigDecimal(pricePerKilo))
+                .weighing(new BigDecimal(weightInKilos), new ItemName(itemName));
+    }
     private static Arguments buyOneItemGetOneFreeDiscount() {
         return Arguments.of("Buy one item, get one free", new BuyOneItemGetOneFreeDiscount(), Collections.singletonList(new BuyOneItemGetOneFreeDiscount()));
     }

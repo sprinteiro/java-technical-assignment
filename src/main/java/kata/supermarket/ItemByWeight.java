@@ -18,10 +18,6 @@ public class ItemByWeight implements Item {
         this.itemName = itemName;
     }
 
-    public BigDecimal price() {
-        return product.pricePerKilo().multiply(weightInKilos).setScale(2, RoundingMode.HALF_UP);
-    }
-
     @Override
     public UUID id() {
         return id;
@@ -30,5 +26,17 @@ public class ItemByWeight implements Item {
     @Override
     public ItemName itemName() {
         return itemName;
+    }
+
+    public BigDecimal weightInKilos() {
+        return weightInKilos;
+    }
+
+    public BigDecimal price() {
+        return product.pricePerKilo().multiply(weightInKilos).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public WeighedProduct product() {
+        return product;
     }
 }
