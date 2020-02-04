@@ -30,7 +30,7 @@ public class PricingDiscount {
     }
 
     public Map<Item, BigDecimal> calculate(List<Item> items) {
-        // TODO: Choose discount strategy and delegate to calculate discount
+        // Choose discount strategy and delegate to calculate discount
         Map<Item, BigDecimal> priceDiscount = new HashMap<>();
 
         for (Discount discount: discounts) {

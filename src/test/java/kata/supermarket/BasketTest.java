@@ -32,7 +32,6 @@ class BasketTest {
     @MethodSource("basketProvidesTotalValueWithDiscounts")
     @ParameterizedTest(name = "{0}")
     void basketProvidesTotalValueWithDiscounts(String description, String expectedTotal, Iterable<Item> items, Discount discount) {
-        // TODO: DEBUG
         final Basket basket = new Basket(PricingDiscount.of(discount));
         items.forEach(basket::add);
         BigDecimal total = basket.total();
