@@ -37,7 +37,7 @@ public class PricingDiscountTest {
     @MethodSource("vegetablesItemsFactory")
     @ParameterizedTest(name = "WeightInKilos: {0} PricePerKilo: {1} ItemName: {2} ExpedtedPrice: {3}")
     void applyDiscountEachKiloOfVegatablesForHalfPrice(String weightInKilos, String pricePerKilo, String itemName, String expectedPrice) {
-        final List<Item> items = Arrays.asList(itemByWeight(weightInKilos, pricePerKilo, itemName));
+        final List<Item> items = Collections.singletonList((itemByWeight(weightInKilos, pricePerKilo, itemName)));
         final PricingDiscount pricingDiscount =
             PricingDiscount.of(new BuyOneKiloOfVegetablesForHalfPriceDiscount(
                 items.stream().map(Item::itemName).collect(Collectors.toList())
@@ -78,8 +78,8 @@ public class PricingDiscountTest {
         return Stream.of(
            lineOf("No discount",
                 new NoDiscount(),
-                Arrays.asList(pintOfMilk),
-                Arrays.asList(ZERO)),
+                Collections.singletonList(pintOfMilk),
+                Collections.singletonList(ZERO)),
             lineOf("Buy one, get one free",
                 new BuyOneItemGetOneFreeDiscount(),
                 Arrays.asList(aPintOfMilk(), aPintOfMilk()),
@@ -87,7 +87,7 @@ public class PricingDiscountTest {
             lineOf("Buy three for the price of two",
                 new BuyThreeItemsForThePriceOfTwoDiscount(),
                 Arrays.asList(aPintOfMilk(),aPintOfMilk(), aPintOfMilk()),
-                Arrays.asList(expectedPriceWithDiscountOfThreeForThePriceOfTwoDiscount, expectedPriceWithDiscountOfThreeForThePriceOfTwoDiscount, expectedPriceWithDiscountOfThreeForThePriceOfTwoDiscount)),
+                Arrays.asList(BigDecimal.valueOf(0, 2), BigDecimal.valueOf(0, 2), pintOfMilk.price())),
             lineOf("Buy two items by one pound",
                 new BuyTwoItemsByOnePoundDiscount(),
                 Arrays.asList(aPintOfMilk(),aPintOfMilk()),
@@ -104,8 +104,8 @@ public class PricingDiscountTest {
 
     static Stream<Arguments> vegetablesItemsFactory() {
         return Stream.of(
-            Arguments.of("3.50", "4.99", "Courgettes", "10.00"),
-            Arguments.of("2.75", "3.25", "Celery", "5.70"),
+            Arguments.of("3.50", "4.99", "Courgettes", "7.50"),
+            Arguments.of("2.75", "3.25", "Celery", "3.26"),
             Arguments.of("1.00", "4.99", "Onions", "2.50"));
     }
 

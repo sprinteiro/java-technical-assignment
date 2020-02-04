@@ -17,6 +17,7 @@ class BasketTest {
     private static final String PICK_AND_MIX_NAME = "Pick and Mix";
     private static final String PRICE_0_49 = "0.49";
     private static final String PRICE_0_51 = "0.51";
+    private static final String AMERICAN_SWEETS_NAME = "American Sweets";
 
     @DisplayName("No Discounts - Basket provides its total value when containing...")
     @MethodSource("basketProvidesTotalValue")
@@ -41,14 +42,26 @@ class BasketTest {
     static Stream<Arguments> basketProvidesTotalValueWithDiscounts() {
         Discount buyOneGetOneFreeDiscount = new BuyOneItemGetOneFreeDiscount();
         Discount buyTwoItemsByOnePoundDiscount = new BuyTwoItemsByOnePoundDiscount();
+        Discount buyThreeItemsForThePriceOfTwoDiscount = new BuyThreeItemsForThePriceOfTwoDiscount();
+        Discount buyOneKiloOfVegetablesForHalfPriceDiscount = new BuyOneKiloOfVegetablesForHalfPriceDiscount(
+            Arrays.asList(new ItemName(AMERICAN_SWEETS_NAME), new ItemName(PICK_AND_MIX_NAME)));
         return Stream.of(
             noItemsWithDiscount("No items - Buy One Get One Free", buyOneGetOneFreeDiscount),
             aSingleItemPricedPerUnitWithDiscount("A single item priced per unit - Buy One Get One Free", "0.49", buyOneGetOneFreeDiscount),
-            multipleSameItemsPricedPerUnitWithDiscount("Multiple same items priced per unit - Buy One Get One Free",PRICE_0_51, buyOneGetOneFreeDiscount),
+            multipleSameTwoItemsPricedPerUnitWithDiscount("Multiple same items priced per unit - Buy One Get One Free",PRICE_0_51, buyOneGetOneFreeDiscount),
 
             noItemsWithDiscount("No items - Buy Two by One Pound", buyTwoItemsByOnePoundDiscount),
             aSingleItemPricedPerUnitWithDiscount("A single item priced per unit - Buy Two by One Pound", "0.49", buyTwoItemsByOnePoundDiscount),
-            multipleSameItemsPricedPerUnitWithDiscount("Multiple same items priced per unit -  Buy Two by One Pound","1.00", buyTwoItemsByOnePoundDiscount)
+            multipleSameTwoItemsPricedPerUnitWithDiscount("Multiple same items priced per unit -  Buy Two by One Pound","1.00", buyTwoItemsByOnePoundDiscount),
+
+            noItemsWithDiscount("No items - Buy Three for the price of two", buyThreeItemsForThePriceOfTwoDiscount),
+            aSingleItemPricedPerUnitWithDiscount("A single item priced per unit - Buy Three for the price of two", "0.49", buyThreeItemsForThePriceOfTwoDiscount),
+            multipleSameThreeItemsPricedPerUnitWithDiscount("Multiple same items priced per unit -  Buy Three for the price of two","1.02", buyThreeItemsForThePriceOfTwoDiscount),
+
+            noItemsWithDiscount("No items - Buy one kilo of vegetables", buyOneKiloOfVegetablesForHalfPriceDiscount),
+            aSingleItemPricedByWeightWithDiscount("A single item priced per weight - Buy one kilo of vegetables", "1.25", buyOneKiloOfVegetablesForHalfPriceDiscount),
+            multipleItemsPricedByWeightWithDiscount("Multiple same items priced per weight -  Buy one kilo of vegetables","3.09", buyOneKiloOfVegetablesForHalfPriceDiscount)
+
 
         );
     }
@@ -67,9 +80,19 @@ class BasketTest {
         return Arguments.of("a single weighed item", totalPrice, Collections.singleton(twoFiftyGramsOfAmericanSweets()));
     }
 
+    private static Arguments aSingleItemPricedByWeightWithDiscount(String description, String totalPrice, Discount discount) {
+        return Arguments.of(description, totalPrice, Collections.singleton(twoFiftyGramsOfAmericanSweets()), discount);
+    }
+
     private static Arguments multipleItemsPricedByWeight(String totalPrice) {
         return Arguments.of("multiple weighed items", totalPrice,
                 Arrays.asList(twoFiftyGramsOfAmericanSweets(), twoHundredGramsOfPickAndMix())
+        );
+    }
+
+    private static Arguments multipleItemsPricedByWeightWithDiscount(String description, String totalPrice, Discount discount) {
+        return Arguments.of(description, totalPrice,
+            Arrays.asList(oneThousandGramsOfAmericanSweets(), twoHundredGramsOfPickAndMix()), discount
         );
     }
 
@@ -78,11 +101,15 @@ class BasketTest {
                 Arrays.asList(aPackOfDigestives(), aPintOfMilk(PRICE_0_49)));
     }
 
-    private static Arguments multipleSameItemsPricedPerUnitWithDiscount(String description, String totalPrice, Discount discount) {
+    private static Arguments multipleSameTwoItemsPricedPerUnitWithDiscount(String description, String totalPrice, Discount discount) {
         return Arguments.of(description, totalPrice,
             Arrays.asList(aPintOfMilk(PRICE_0_51), aPintOfMilk(PRICE_0_51)), discount);
     }
 
+    private static Arguments multipleSameThreeItemsPricedPerUnitWithDiscount(String description, String totalPrice, Discount discount) {
+        return Arguments.of(description, totalPrice,
+            Arrays.asList(aPintOfMilk(PRICE_0_51), aPintOfMilk(PRICE_0_51), aPintOfMilk(PRICE_0_51)), discount);
+    }
 
     private static Arguments aSingleItemPricedPerUnit(String totalPrice) {
         return Arguments.of("a single item priced per unit", totalPrice, Collections.singleton(aPintOfMilk(PRICE_0_49)));
@@ -113,7 +140,11 @@ class BasketTest {
     }
 
     private static Item twoFiftyGramsOfAmericanSweets() {
-        return aKiloOfAmericanSweets().weighing(new BigDecimal(".25"), new ItemName("American Sweets"));
+        return aKiloOfAmericanSweets().weighing(new BigDecimal(".25"), new ItemName(AMERICAN_SWEETS_NAME));
+    }
+
+    private static Item oneThousandGramsOfAmericanSweets() {
+        return aKiloOfAmericanSweets().weighing(new BigDecimal("1.00"), new ItemName(AMERICAN_SWEETS_NAME));
     }
 
     private static WeighedProduct aKiloOfPickAndMix() {

@@ -32,13 +32,10 @@ public class BuyOneKiloOfVegetablesForHalfPriceDiscount implements Discount {
                         BigDecimal priceWithDiscountOfHalfPricePerKilos =
                             kilosToApplyDiscount[0].multiply(
                                 itemByWeight.product().pricePerKilo().divide(new BigDecimal(2), RoundingMode.HALF_UP));
-                        // Rest of weight (less than one kilo) no discount is applied
-                        BigDecimal priceWithoutDiscount =
-                            kilosToApplyDiscount[1].multiply(itemByWeight.product().pricePerKilo());
 
                         return new AbstractMap.SimpleImmutableEntry<>(
                             itemByWeight,
-                            priceWithDiscountOfHalfPricePerKilos.add(priceWithoutDiscount));
+                            priceWithDiscountOfHalfPricePerKilos);
                     }).collect(Collectors.toMap(Map.Entry::getKey, e ->  e.getValue().setScale(2, RoundingMode.HALF_UP)));
 
             itemDiscountPriceMap.putAll(vegetableItemDiscountPriceMap);
